@@ -1,0 +1,35 @@
+---
+
+- name: Install dependencies
+  ansible.builtin.package:
+    name:
+    - ca-certificates
+    - unzip
+    state: latest
+
+- name: Obtain version of AWS CLI currently installed
+  ansible.builtin.command:
+    cmd: aws --version
+  register: aws_cli_version
+  ignore_errors: True
+
+- name: Delete system managed package if one is installed
+  ansible.builtin.package:
+    name:
+    - awscli # Amazon Linux, Debian
+    - aws-cli # Arch Linux
+    - aws-cli-v2 # Arch Linux
+  state: absent
+
+- name: Extract installation files
+  ansible.builtin.unarchive:
+    src: "{{ aws_cli_download_url }}"
+    dest: /tmp/
+    remote_src: True
+
+- name: Install AWS CLI
+  command: "/tmp/aws/install --install-dir /opt/aws-cli --bin-dir /usr/local/bin"
+  args:
+    creates: "/usr/local/bin/aws"
+
+- include_tasks: "awscli_v{{ awscli_version.split('.')[0] }}.yml"
